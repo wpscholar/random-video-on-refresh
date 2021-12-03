@@ -12,6 +12,56 @@
  */
 
 function shortcode_init() {
+
+	add_shortcode(
+		'random_vimeo_on_refresh',
+		function ( $atts, $content, $tag ) {
+
+			$atts = shortcode_atts(
+				[
+					'ids' => '653004282, 646622427',
+				],
+				$atts,
+				$tag
+			);
+
+			$ids = array_filter( array_map( 'trim', explode( ',', $atts['ids'] ) ) );
+
+			$key = array_rand( $ids );
+			$id  = $ids[ $key ];
+
+			$query_string = http_build_query(
+				[
+					'autoplay'   => 1,
+					'loop'       => 1,
+					'background' => 1,
+					'title'      => 0,
+					'byline'     => 0,
+					'portrait'   => 0
+				],
+				null,
+				'&'
+			);
+
+			$url = esc_url( "https://player.vimeo.com/video/{$id}?{$query_string}" );
+
+			return <<<HTML
+<div style="padding:39.95% 0 0 0;position:relative;">
+	<iframe
+		src="{$url}"
+		allow="autoplay; fullscreen; picture-in-picture"
+		allowfullscreen=""
+		frameborder="0"
+		style="position:absolute;top:0;left:0;width:100%;height:100%;"
+	></iframe>
+</div>
+<script src="https://player.vimeo.com/api/player.js"></script>
+HTML;
+		},
+		10,
+		3
+	);
+
 	add_shortcode(
 		'random_video_on_refresh',
 		function ( $atts, $content, $tag ) {
