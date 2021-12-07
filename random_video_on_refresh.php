@@ -33,6 +33,7 @@ function shortcode_init() {
 			$query_string = http_build_query(
 				[
 					'autoplay'   => 1,
+					'autopause'  => 0,
 					'loop'       => 1,
 					'background' => 1,
 					'title'      => 0,
