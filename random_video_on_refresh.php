@@ -1,14 +1,25 @@
 <?php
-
 /**
+ * Random Video on Refresh
+ *
+ * @package           RandomVideoOnRefresh
+ * @author            Micah Wood
+ * @copyright         Copyright 2021 by Micah Wood - All rights reserved.
+ * @license           GPL2.0-or-later
+ *
+ * @wordpress-plugin
  * Plugin Name:       Random Video on Refresh
+ * Plugin URI:
  * Description:       Show a random video on page refresh.
- * Author:            Kris Cochran
- * Author URI:        https://github.com/Kcor555
  * Version:           1.0
- * License:           GPL v2 or later
+ * Requires PHP:      7.0
+ * Requires at least: 5.6
+ * Author:            Micah Wood
+ * Author URI:        https://wpscholar.com
+ * Text Domain:       random-video-on-refresh
+ * Domain Path:       /languages
+ * License:           GPL V2 or later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
- * Copyright 2021 by Kris Cochran - All rights reserved.
  */
 
 function shortcode_init() {
@@ -19,7 +30,15 @@ function shortcode_init() {
 
 			$atts = shortcode_atts(
 				[
-					'ids' => '653004282, 646622427',
+					'ids'        => '653004282, 646622427',
+					'autoplay'   => 'true',
+					'autopause'  => 'false',
+					'background' => 'true',
+					'byline'     => 'false',
+					'loop'       => 'true',
+					'portrait'   => 'false',
+					'responsive' => 'true',
+					'title'      => 'false',
 				],
 				$atts,
 				$tag
@@ -27,37 +46,45 @@ function shortcode_init() {
 
 			$ids = array_filter( array_map( 'trim', explode( ',', $atts['ids'] ) ) );
 
-			$key = array_rand( $ids );
-			$id  = $ids[ $key ];
+			$idCollection = '[' . esc_js( implode( ',', $ids ) ) . ']';
 
-			$query_string = http_build_query(
-				[
-					'autoplay'   => 1,
-					'autopause'  => 0,
-					'loop'       => 1,
-					'background' => 1,
-					'title'      => 0,
-					'byline'     => 0,
-					'portrait'   => 0
-				],
-				null,
-				'&'
-			);
+			$optionNames = array_keys( $atts );
+			unset( $optionNames['ids'] );
 
-			$url = esc_url( "https://player.vimeo.com/video/{$id}?{$query_string}" );
+			$options = [];
 
-			return <<<HTML
-<div style="padding:39.95% 0 0 0;position:relative;">
-	<iframe
-		src="{$url}"
-		allow="autoplay; fullscreen; picture-in-picture"
-		allowfullscreen=""
-		frameborder="0"
-		style="position:absolute;top:0;left:0;width:100%;height:100%;"
-	></iframe>
-</div>
-<script src="https://player.vimeo.com/api/player.js"></script>
-HTML;
+			foreach ( $optionNames as $optionName ) {
+				$options[ $optionName ] = filter_var( $atts[ $optionName ], FILTER_VALIDATE_BOOL );
+			}
+
+			$optionCollection = wp_json_encode( $options );
+
+			$html_id = esc_attr( md5( wp_json_encode( $atts ) ) );
+
+			$js = <<<SCRIPT
+{
+	const options = {$optionCollection};
+	const ids = {$idCollection};
+	const id = ids[Math.floor(Math.random() * ids.length)];
+	
+	options.id = id;
+	
+	const player = new Vimeo.Player( '{$html_id}', options);
+	
+	setTimeout(
+		() => {
+			player.getPaused().then((paused) => player.play());			
+		},
+		0
+	);
+
+}
+SCRIPT;
+
+			wp_enqueue_script( 'vimeo-player', 'https://player.vimeo.com/api/player.js', [], false, true );
+			wp_add_inline_script( 'vimeo-player', $js );
+
+			return '<div id="' . esc_attr( $html_id ) . '"></div>';
 		},
 		10,
 		3
